@@ -1,0 +1,185 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>D3 Pokémon Battle</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            background-color: #2c3e50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        svg {
+            background-color: #f0f0d8;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            border-radius: 4px;
+        }
+        .box-bg { fill: #f8f8d8; stroke: #405048; stroke-width: 6px; rx: 12px; }
+        .menu-bg { fill: #f8f8f8; stroke: #505068; stroke-width: 12px; rx: 8px; }
+        .text-dark { fill: #303030; font-weight: bold; font-size: 24px; }
+        .text-small { fill: #303030; font-size: 24px; font-weight: bold; }
+        .hp-bar-bg { fill: #484048; rx: 4px; }
+        .hp-bar-fill { fill: #48d0b0; rx: 4px; }
+        .move-text { cursor: pointer; fill: #303030; font-weight: bold; font-size: 36px; }
+        .move-text:hover { fill: #d04040; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container"></div>
+
+    <script>
+        // O ESTADO DO JOGO (Os Dados)
+        const battleData = {
+            opponent: {
+                name: "SQUIRTLE", level: 26, hp: 70, maxHp: 100,
+                sprite: "https://www.pngall.com/wp-content/uploads/15/Squirtle-PNG-Image-File.png"
+            },
+            player: {
+                name: "BULBASAUR", level: 24, hp: 52, maxHp: 52,
+                // Link atualizado e estável para o sprite de costas
+                sprite: "https://art.pixilart.com/7e8988e96886ddd.png"
+            },
+            moves: ["VINE WHIP", "RAZOR LEAF", "GROWL", "TACKLE"]
+        };
+
+        // CONFIGURAÇÃO DO CANVAS
+        const width = 960;
+        const height = 640;
+
+        const svg = d3.select("#game-container")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        // A barra de HP do oponente e do jogador tem 200 pixels de largura máxima
+        const hpScaleOpponent = d3.scaleLinear().domain([0, battleData.opponent.maxHp]).range([0, 200]);
+        const hpScalePlayer = d3.scaleLinear().domain([0, battleData.player.maxHp]).range([0, 200]);
+        
+        // Base Oval no chão (Oponente)
+        svg.append("ellipse").attr("cx", 700).attr("cy", 240).attr("rx", 180).attr("ry", 50).attr("fill", "#d0d0b8");
+        // Base Oval no chão (Jogador)
+        svg.append("ellipse").attr("cx", 260).attr("cy", 460).attr("rx", 220).attr("ry", 70).attr("fill", "#d0d0b8");
+
+        // Sprite Oponente
+        const opponentImage = svg.append("image")
+            .attr("href", battleData.opponent.sprite)
+            .attr("x", 600).attr("y", 50)
+            .attr("width", 200).attr("height", 200);
+
+        // Sprite Jogador
+        svg.append("image")
+        .attr("href", battleData.player.sprite)
+        .attr("x", 70) 
+        .attr("y", 230) 
+        .attr("height", 250);
+
+        // CAIXAS DE STATUS (Oponente)
+        const oppStatus = svg.append("g").attr("transform", "translate(40, 60)");
+        oppStatus.append("rect").attr("class", "box-bg").attr("width", 360).attr("height", 90);
+        oppStatus.append("text").attr("class", "text-dark").attr("x", 20).attr("y", 40).text(battleData.opponent.name);
+        oppStatus.append("text").attr("class", "text-dark").attr("x", 260).attr("y", 40).text("Lv" + battleData.opponent.level);
+        // Barra de HP Oponente
+        oppStatus.append("rect").attr("class", "hp-bar-bg").attr("x", 100).attr("y", 56).attr("width", 208).attr("height", 16);
+        oppStatus.append("rect").attr("class", "hp-bar-fill").attr("x", 104).attr("y", 60).attr("width", hpScaleOpponent(battleData.opponent.hp)).attr("height", 8);
+
+        // CAIXAS DE STATUS (Jogador)
+        const playerStatus = svg.append("g").attr("transform", "translate(520, 280)");
+        playerStatus.append("rect").attr("class", "box-bg").attr("width", 380).attr("height", 130);
+        playerStatus.append("text").attr("class", "text-dark").attr("x", 20).attr("y", 40).text(battleData.player.name);
+        playerStatus.append("text").attr("class", "text-dark").attr("x", 280).attr("y", 40).text("Lv" + battleData.player.level);
+        // Barra de HP Jogador
+        playerStatus.append("rect").attr("class", "hp-bar-bg").attr("x", 120).attr("y", 56).attr("width", 208).attr("height", 16);
+        playerStatus.append("rect").attr("class", "hp-bar-fill").attr("x", 124).attr("y", 60).attr("width", hpScalePlayer(battleData.player.hp)).attr("height", 8);
+        playerStatus.append("text").attr("class", "text-small").attr("x", 200).attr("y", 100).text(`${battleData.player.hp} / ${battleData.player.maxHp}`);
+
+        // MENU INFERIOR
+        const menuY = 480;
+        // Caixa de Golpes
+        svg.append("rect").attr("class", "menu-bg").attr("x", 10).attr("y", menuY).attr("width", 600).attr("height", 150);
+        // Caixa de PP/Tipo
+        svg.append("rect").attr("class", "menu-bg").attr("x", 620).attr("y", menuY).attr("width", 330).attr("height", 150);
+        
+        // Textos PP e Tipo
+        svg.append("text").attr("class", "text-dark").attr("x", 650).attr("y", menuY + 60).text("PP");
+        svg.append("text").attr("class", "text-dark").attr("x", 790).attr("y", menuY + 60).text("25/25");
+        svg.append("text").attr("class", "text-dark").attr("x", 650).attr("y", menuY + 120).text("TIPO/PLANTA");
+
+        // Mapeando a array de golpes para posições na tela
+        const movePositions = [
+            { x: 60, y: menuY + 60 },  
+            { x: 320, y: menuY + 60 }, 
+            { x: 60, y: menuY + 120 }, 
+            { x: 320, y: menuY + 120 }
+        ];
+
+        // Criando a Seta de Seleção
+        const cursorArrow = svg.append("polygon")
+        .attr("points", "0,0 24,12 0,24")
+        .attr("fill", "#303030")
+        .style("opacity", 0)
+
+        // Função para fazer o oponente piscar em vermelho
+        function flashOpponent() {
+            opponentImage
+                .style("filter", "drop-shadow(0 0 8px #ff0000) brightness(1.5)")
+                .transition()
+                .duration(100)
+                .style("filter", "drop-shadow(0 0 0px #ff0000) brightness(1)")
+                .transition()
+                .duration(100)
+                .style("filter", "drop-shadow(0 0 8px #ff0000) brightness(1.5)")
+                .transition()
+                .duration(100)
+                .style("filter", "drop-shadow(0 0 0px #ff0000) brightness(1)")
+                .transition()
+                .duration(100)
+                .style("filter", "drop-shadow(0 0 8px #ff0000) brightness(1.5)")
+                .transition()
+                .duration(100)
+                .style("filter", "none");
+        }
+
+        // Vinculando os dados aos textos
+        svg.selectAll(".move-text")
+            .data(battleData.moves)
+            .enter()
+            .append("text")
+            .attr("class", "move-text")
+            .attr("x", (d, i) => movePositions[i].x)
+            .attr("y", (d, i) => movePositions[i].y)
+            .text(d => d)
+
+            .on("mouseover", function(event, d) {
+        // Encontra qual é o índice (0 a 3) do golpe que o mouse está em cima
+        const i = battleData.moves.indexOf(d);
+        
+        // Calcula a posição da seta (um pouco para a esquerda e para cima do texto)
+        const targetX = movePositions[i].x - 40; 
+        const targetY = movePositions[i].y - 24; 
+
+        // Move a seta e deixa ela visível
+        cursorArrow
+            .attr("transform", `translate(${targetX}, ${targetY})`)
+            .style("opacity", 1);
+    })
+    // Quando o mouse SAI da área do golpe
+    .on("mouseout", function() {
+        // Esconde a seta
+        cursorArrow.style("opacity", 0);
+    })
+    // Quando clica em um golpe
+    .on("click", function(event, d) {
+        // Faz o oponente piscar em vermelho
+        flashOpponent();
+    });
+
+    </script>
+</body>
+</html>
