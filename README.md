@@ -4,7 +4,8 @@
 **Batalha pokemon**
 
 ---
-
+## Contribuidores
+**Implementação do Vine Whip** - João Furtado 
 ## 📌 Descrição
 
 Esta visualização interativa simula uma batalha no estilo clássico de Pokémon utilizando **D3.js** e **SVG**. O foco principal da implementação é o ataque **Vine Whip**, que combina animação fluida, feedback visual e interação do usuário para criar uma experiência lúdica e envolvente.
